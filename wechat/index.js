@@ -1,7 +1,8 @@
 const axios = require('axios')
 const { writeFileSync, readFileSync } = require('fs')
-
+const sha1 = require('sha1')
 const { wxConfig } = require('../config')
+
 
 /**
  * 获取accessToken
@@ -19,7 +20,7 @@ const { wxConfig } = require('../config')
 class WeChat {
   constructor() { }
 
-  /**
+  /**=================================================================================
    * 获取Token
    */
   async getAccessToken() {
@@ -60,20 +61,27 @@ class WeChat {
   }
 
 
-  fetchAccessToken() {
-    const token = this.readAccessToken();
+  async fetchAccessToken() {
+    const token = JSON.parse(this.readAccessToken())
     if (token) {
       if (this.isValidAccessToken(token)) {
         return token;
       } else {
-        const token = this.getAccessToken();
+        const token = await this.getAccessToken();
         this.saveAccessToken(token)
       }
     } else {
-      const token = this.getAccessToken();
+      const token = await this.getAccessToken();
       this.saveAccessToken(token)
     }
+    return token.access_token;
+  }
 
+  isValidWxServer(req) {
+    const { signature, echostr, timestamp, nonce } = req.query;
+    const { token } = wxConfig;
+    const sha1Str = sha1([timestamp, nonce, token].sort().join(''));
+    return sha1Str
   }
 
 }

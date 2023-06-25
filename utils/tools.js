@@ -7,8 +7,7 @@ const { parseString } = require('xml2js')
 const getUserDataAsync = (req) => {
   return new Promise((resolve, reject) => {
     let xmlData = '';
-    req
-      .on('data', data => {
+    req.on('data', data => {
         xmlData += data
       })
       .on('end', () => {
