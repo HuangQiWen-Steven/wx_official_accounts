@@ -57,7 +57,7 @@ class WeChat {
     if (!data && !data.access_token && !data.expires_in) {
       return false;
     }
-    return data.expires_in < Date.now()
+    return data.expires_in > Date.now()
   }
 
 
@@ -77,13 +77,70 @@ class WeChat {
     return token.access_token;
   }
 
+
+  // 验证服务器有效性 ===================================================================
   isValidWxServer(req) {
     const { signature, echostr, timestamp, nonce } = req.query;
     const { token } = wxConfig;
     const sha1Str = sha1([timestamp, nonce, token].sort().join(''));
     return sha1Str
   }
+  // =========================================================================
 
+  // 获取js—sdk 
+  async getTicket() {
+    const token = await this.fetchAccessToken()
+    const url = `https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=${token.access_token}&type=jsapi`;
+    const { data } = await axios.get(url)
+    return {
+      ticket: data.ticket,
+      expires_in: Date.now() + (data.expires_in - 300) * 1000
+    }
+  };
+  /**
+ * 保存Token
+ * @param {*} ticket  保存的凭据
+ */
+  saveTicket(ticket) {
+    ticket = JSON.stringify(ticket)
+    writeFileSync('./ticket.txt', ticket)
+  };
+
+  /**
+* 
+* @returns 
+*/
+  readTicket() {
+    const text = readFileSync('./ticket.txt')
+    return text.toString() !== '' ? text.toString() : null
+  };
+
+  /**
+ * 检验token有效性
+ * @param {*} data 
+ */
+  isValidTicket(data) {
+    if (!data && !data.ticket && !data.expires_in) {
+      return false;
+    }
+    return data.expires_in < Date.now()
+  }
+
+  async fetchTicker() {
+    const data = JSON.parse(this.readTicket())
+    if (data) {
+      if (this.isValidTicket(data)) {
+        return data;
+      } else {
+        const ticket = await this.getTicket();
+        this.saveTicket(ticket)
+      }
+    } else {
+      const ticket = await this.getTicket();
+      this.saveTicket(ticket)
+    }
+    return data.ticket;
+  }
 }
 
 

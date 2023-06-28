@@ -2,15 +2,42 @@ const express = require('express');
 const Message = require('./wechat/messages')
 const Menu = require('./wechat/menus')
 const WeChat = require('./wechat')
+const { url } = require('./config')
+const sha1 = require('sha1')
 
 const app = express()
 const message = new Message();
 const menus = new Menu();
 const wechat = new WeChat();
 
+app.set('views', './views');
+app.set('view engine', 'ejs')
 
+app.get('/search', async (req, res) => {
 
-// 验证服务器有效性
+  // // 随机字符串
+  const noncestr = String(Math.random()).split('.')[1]
+  // 时间戳
+  const timestamp = Date.now()
+  const { ticket } = await wechat.fetchTicker();
+
+  const arr = [
+    `jsapi_ticket=${ticket}`,
+    `noncestr=${noncestr}`,
+    `timestamp=${timestamp}`,
+    `url=${url}/search`
+  ]
+
+  const signature = sha1(arr.sort().join('&'))
+
+  res.render('search', {
+    signature,
+    noncestr,
+    timestamp
+  })
+})
+
+// 接受处理所有请求
 app.use((req, res, next) => {
   const { signature, echostr } = req.query;
 
@@ -31,6 +58,8 @@ app.use((req, res, next) => {
   }
 })
 
+
+
 app.listen(80, () => {
-  console.log("服务器启动成功")
+  console.log("服务器启动成功,端口80")
 })
